@@ -57,9 +57,14 @@ def format_message(message):
     if type(message) == str:
         return message
     message_data = message['message']
-    formatted_message = "{sender}:\n{stream} > {topic}\n{content}".format(
+    recipient = message_data['display_recipient']
+    stream_and_topic = "" if isinstance(recipient, list) \
+        else "\n{} > {}\n".format(
+                message_data['display_recipient'],
+                message_data['subject'])
+    formatted_message = "{sender}:{stream_and_topic}\n{content}".format(
         sender=message_data['sender_full_name'],
-        stream=message_data['display_recipient'],
+        stream_and_topic=stream_and_topic,
         topic=message_data['subject'],
         content=message_data['content']
     )
