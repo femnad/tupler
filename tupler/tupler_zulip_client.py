@@ -1,4 +1,5 @@
 from collections import namedtuple
+import json
 import requests
 from requests.auth import HTTPBasicAuth
 from time import sleep
@@ -13,6 +14,8 @@ def get_endpoint(credentials, endpoint_type):
     endpoint = None
     if endpoint_type == 'queue':
         endpoint = 'register'
+    elif endpoint_type == 'subscriptions':
+        endpoint = 'users/me/subscriptions'
     else:
         endpoint = endpoint_type
     return "{server}/api/v1/{endpoint}".format(server=credentials.server,
@@ -74,6 +77,31 @@ def format_message(message):
 
 def get_new_messages(credentials, queue_id, last_event_id):
     return get_events_from_queue(credentials, queue_id, last_event_id)
+
+
+def get_subscriptions(credentials):
+    subscriptions_endpoint = get_endpoint(credentials, 'subscriptions')
+    subscriptions_response = authenticated_get(
+        credentials, subscriptions_endpoint)
+    subscriptions_response_json = subscriptions_response.json()
+    return [s['name'] for s in subscriptions_response_json['subscriptions']]
+
+
+def _get_subscription_body(stream_names):
+    return json.dumps([{"name": s} for s in stream_names])
+
+
+def subscribe_to_streams(credentials, stream_names):
+    subscriptions_endpoint = get_endpoint(credentials, 'subscriptions')
+    subscription_list = None
+    if not isinstance(stream_names, list):
+        subscription_list = [stream_names]
+    else:
+        subscription_list = stream_names
+    subscription_body = "subscriptions={}".format(_get_subscription_body(
+        subscription_list))
+    return authenticated_post(credentials, subscriptions_endpoint,
+                              subscription_body)
 
 
 def send_stream_message(credentials, stream, subject, content):
