@@ -1,5 +1,6 @@
 import argparse
 import curses
+from functools import partial
 import json
 from os.path import expanduser
 from time import sleep
@@ -13,13 +14,30 @@ def _get_credentials(file_name):
         return Credentials(**credentials)
 
 
-def _display_message(window, message):
-    window.addstr("{}\n".format(message.sender), curses.color_pair(2))
+def _should_print_component(message, prev_message, component):
+    if prev_message is None:
+        return True
+    component, prev_component = [m.__getattribute__(component)
+                                 for m in [message, prev_message]]
+    if component == prev_component:
+        return False
+    return True
+
+
+def _display_message(window, message, previous_message=None):
+    should_print = partial(_should_print_component, message, previous_message)
+    if should_print('sender'):
+        window.addstr("{}\n".format(message.sender), curses.color_pair(2))
     if not isinstance(message.recipient, list):  # Not a private message
-        window.addstr(message.recipient, curses.color_pair(3))
-        window.addstr(" > ")
-        window.addstr(message.subject, curses.color_pair(4))
-        window.addstr("\n")
+        should_print_recipient = should_print('recipient')
+        should_print_subject = should_print('subject')
+        if should_print_recipient:
+            window.addstr(message.recipient, curses.color_pair(3))
+        if should_print_recipient or should_print_subject:
+            window.addstr(" > ")
+        if should_print_subject:
+            window.addstr(message.subject, curses.color_pair(4))
+            window.addstr("\n")
     window.addstr("{}\n".format(message.content))
 
 
@@ -46,6 +64,7 @@ if __name__ == "__main__":
     stdscr.keypad(True)
     stdscr.nodelay(True)
 
+    previous_message = None
     for message in message_loop(credentials):
         if message == Events.end_of_messages:
             c = stdscr.getch()
@@ -53,7 +72,8 @@ if __name__ == "__main__":
                 break
             sleep(1)
         else:
-            _display_message(stdscr, message)
+            _display_message(stdscr, message, previous_message)
+            previous_message = message
             stdscr.refresh()
 
     curses.nocbreak()
