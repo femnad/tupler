@@ -1,8 +1,12 @@
 from collections import namedtuple
+from enum import Enum
 import json
 import requests
 from requests.auth import HTTPBasicAuth
-from time import sleep
+
+
+class Events(Enum):
+    end_of_messages = 1
 
 Message = namedtuple('Message', ['event_id', 'sender', 'recipient', 'subject',
                                  'content'])
@@ -65,7 +69,7 @@ def format_message(message):
         else "\n{} > {}\n".format(
                 message_data['display_recipient'],
                 message_data['subject'])
-    formatted_message = "{sender}:{stream_and_topic}\n{content}".format(
+    formatted_message = "{sender}:{stream_and_topic}{content}".format(
         sender=message_data['sender_full_name'],
         stream_and_topic=stream_and_topic,
         topic=message_data['subject'],
@@ -127,4 +131,4 @@ def message_loop(credentials):
             last_event_id = message_id
             yield formatted_message
         else:
-            sleep(1)
+            yield Events.end_of_messages

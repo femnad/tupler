@@ -1,8 +1,9 @@
 import curses
 import json
 from os.path import expanduser
+from time import sleep
 
-from tupler_zulip_client import Credentials, message_loop
+from tupler_zulip_client import Credentials, Events, message_loop
 
 
 def _get_credentials(file_name):
@@ -17,11 +18,18 @@ if __name__ == "__main__":
     curses.noecho()
     curses.cbreak()
     stdscr.keypad(True)
+    stdscr.nodelay(True)
 
     for message in message_loop(credentials):
-        stdscr.addstr(message)
-        stdscr.addstr('\n')
-        stdscr.refresh()
+        if message == Events.end_of_messages:
+            c = stdscr.getch()
+            if c >= 0 and ord('q') == c:
+                break
+            sleep(1)
+        else:
+            stdscr.addstr(message)
+            stdscr.addstr('\n')
+            stdscr.refresh()
 
     curses.nocbreak()
     stdscr.keypad(False)
