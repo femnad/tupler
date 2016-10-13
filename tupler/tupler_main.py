@@ -1,11 +1,12 @@
 import argparse
 import curses
+from curses.textpad import Textbox, rectangle
 from functools import partial
 import json
 from os.path import expanduser
 from time import sleep
 
-from tupler.tupler_zulip_client import Credentials, Events, message_loop
+from tupler.tupler_zulip_client import Credentials, Events, message_loop, send_stream_message
 
 
 def _get_credentials(file_name):
@@ -50,6 +51,28 @@ def _initialize_colors():
     curses.init_pair(4, curses.COLOR_BLUE, -1)
 
 
+def _message_mode(window, credentials):
+    window.clear()
+    window.nodelay(False)
+    window.addstr(0, 0, ("Enter stream message, delimit with new lines:"
+                         " (hit Ctrl-G to send)"))
+
+    editwin = curses.newwin(5, 30, 2, 1)
+    rectangle(window, 1, 0, 7, 32)
+    window.refresh()
+
+    box = Textbox(editwin)
+    box.edit()
+
+    # Get resulting contents
+    message = box.gather()
+    stream, subject, content = message.strip().split("\n")
+    send_stream_message(credentials, stream, subject, content)
+
+    window.clear()
+    window.nodelay(True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rcfile", help="Set rc file")
@@ -71,6 +94,8 @@ def main():
             c = stdscr.getch()
             if c >= 0 and ord('q') == c:
                 break
+            elif c >= 0 and ord('m') == c:
+                _message_mode(stdscr, credentials)
             sleep(1)
         else:
             _display_message(stdscr, message, previous_message)
