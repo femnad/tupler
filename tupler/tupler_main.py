@@ -33,10 +33,11 @@ def _display_message(window, message, previous_message=None):
         should_print_subject = should_print('subject')
         if should_print_recipient:
             window.addstr(message.recipient, curses.color_pair(3))
-        if should_print_recipient or should_print_subject:
+        if should_print_recipient and should_print_subject:
             window.addstr(" > ")
         if should_print_subject:
             window.addstr(message.subject, curses.color_pair(4))
+        if should_print_recipient or should_print_subject:
             window.addstr("\n")
     window.addstr("{}\n".format(message.content))
 
