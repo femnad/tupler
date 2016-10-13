@@ -91,6 +91,8 @@ def main():
     credentials = _get_credentials(credentials_file)
     stdscr = curses.initscr()
     _initialize_colors()
+    stdscr.idlok(True)
+    stdscr.scrollok(True)
     stdscr.clear()
     curses.noecho()
     curses.cbreak()
