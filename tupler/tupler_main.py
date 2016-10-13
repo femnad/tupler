@@ -1,3 +1,4 @@
+import argparse
 import curses
 import json
 from os.path import expanduser
@@ -31,7 +32,12 @@ def _initialize_colors():
 
 
 if __name__ == "__main__":
-    credentials = _get_credentials('~/.tuplerrc')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rcfile", help="Set rc file")
+    args = parser.parse_args()
+    credentials_file = args.rcfile if args.rcfile is not None \
+        else "~/.tuplerrc"
+    credentials = _get_credentials(credentials_file)
     stdscr = curses.initscr()
     _initialize_colors()
     stdscr.clear()
