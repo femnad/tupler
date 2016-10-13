@@ -60,23 +60,14 @@ def get_events_from_queue(credentials, queue_id, last_event_id):
     return new_events_json['events']
 
 
-def format_message(message):
-    if type(message) == str:
-        return message
+def get_message(message):
     message_data = message['message']
+    sender = message_data['sender_full_name']
     recipient = message_data['display_recipient']
-    stream_and_topic = "" if isinstance(recipient, list) \
-        else "\n{} > {}\n".format(
-                message_data['display_recipient'],
-                message_data['subject'])
-    formatted_message = "{sender}:{stream_and_topic}{content}".format(
-        sender=message_data['sender_full_name'],
-        stream_and_topic=stream_and_topic,
-        topic=message_data['subject'],
-        content=message_data['content']
-    )
-    message_id = message['id']
-    return (message_id, formatted_message)
+    subject = message_data['subject']
+    content = message_data['content']
+    event_id = message['id']
+    return Message(event_id, sender, recipient, subject, content)
 
 
 def get_new_messages(credentials, queue_id, last_event_id):
@@ -127,8 +118,8 @@ def message_loop(credentials):
     while True:
         new_messages = get_new_messages(credentials, queue_id, last_event_id)
         for message in new_messages:
-            message_id, formatted_message = format_message(message)
-            last_event_id = message_id
-            yield formatted_message
+            message_tuple = get_message(message)
+            last_event_id = message_tuple.event_id
+            yield message_tuple
         else:
             yield Events.end_of_messages

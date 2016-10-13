@@ -11,6 +11,16 @@ def _get_credentials(file_name):
         credentials = json.loads(credentials_file.read())
         return Credentials(**credentials)
 
+
+def _format_message(message):
+    stream_and_topic = "" if isinstance(message.recipient, list) \
+                       else "\n{} > {}\n".format(
+                               message.recipient,
+                               message.subject)
+    return "{}:{}{}\n".format(message.sender, stream_and_topic,
+                              message.content)
+
+
 if __name__ == "__main__":
     credentials = _get_credentials('~/.tuplerrc')
     stdscr = curses.initscr()
@@ -27,8 +37,7 @@ if __name__ == "__main__":
                 break
             sleep(1)
         else:
-            stdscr.addstr(message)
-            stdscr.addstr('\n')
+            stdscr.addstr(_format_message(message))
             stdscr.refresh()
 
     curses.nocbreak()
