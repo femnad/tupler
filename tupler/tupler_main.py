@@ -5,7 +5,7 @@ import json
 from os.path import expanduser
 from time import sleep
 
-from tupler_zulip_client import Credentials, Events, message_loop
+from tupler.tupler_zulip_client import Credentials, Events, message_loop
 
 
 def _get_credentials(file_name):
@@ -49,7 +49,7 @@ def _initialize_colors():
     curses.init_pair(4, curses.COLOR_BLUE, -1)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rcfile", help="Set rc file")
     args = parser.parse_args()
