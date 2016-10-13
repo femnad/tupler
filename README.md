@@ -15,8 +15,8 @@ Running
 
 Where `rcfile` is:
 
-{
-  "server": "<zulip-server>",
-  "email": "<email-of-the-zulip-user>",
-  "api_key": "<api-key-of-the-user>",
-}
+    {
+      "server": "<zulip-server>",
+      "email": "<email-of-the-zulip-user>",
+      "api_key": "<api-key-of-the-user>",
+    }
