@@ -13,22 +13,22 @@ Message = namedtuple('Message', ['event_id', 'sender', 'recipient', 'subject',
 
 Credentials = namedtuple('Credentials', ['server', 'email', 'api_key'])
 
+endpoints = {'queue': 'register', 'subscriptions': 'users/me/subscriptions'}
+
 
 def get_endpoint(credentials, endpoint_type):
     endpoint = None
-    if endpoint_type == 'queue':
-        endpoint = 'register'
-    elif endpoint_type == 'subscriptions':
-        endpoint = 'users/me/subscriptions'
+    if endpoint_type in endpoints:
+        endpoint = endpoints[endpoint_type]
     else:
         endpoint = endpoint_type
     return "{server}/api/v1/{endpoint}".format(server=credentials.server,
                                                endpoint=endpoint)
 
 
-def authenticated_get(credentials, endpoint):
+def authenticated_get(credentials, endpoint, params=None):
     return requests.get(endpoint, auth=HTTPBasicAuth(
-            credentials.email, credentials.api_key))
+        credentials.email, credentials.api_key), params=params)
 
 
 def authenticated_post(credentials, endpoint, data):
@@ -72,6 +72,14 @@ def get_message(message):
 
 def get_new_messages(credentials, queue_id, last_event_id):
     return get_events_from_queue(credentials, queue_id, last_event_id)
+
+
+def get_old_messages(credentials, anchor, num_before, num_after):
+    messages_endpoint = get_endpoint(credentials, 'messages')
+    return authenticated_get(credentials, messages_endpoint,
+                             params={'anchor': anchor,
+                                     'num_before': num_before,
+                                     'num_after': num_after})
 
 
 def get_subscriptions(credentials):
