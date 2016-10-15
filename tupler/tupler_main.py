@@ -2,13 +2,21 @@ import argparse
 import curses
 from curses.textpad import Textbox, rectangle
 from curses import wrapper
+from enum import Enum
 from functools import partial
 import json
 from os.path import expanduser
 from time import sleep
 
-from tupler.tupler_zulip_client import Credentials, Events, get_unread_messages, message_loop, \
+from tupler.tupler_zulip_client import (
+    Credentials, Events, get_unread_messages, message_loop,
     send_private_message, send_stream_message
+)
+
+
+class MessageType(Enum):
+    private = 1
+    stream = 2
 
 
 def _get_credentials(file_name):
@@ -53,34 +61,58 @@ def _initialize_colors():
     curses.init_pair(4, curses.COLOR_BLUE, -1)
 
 
+help_text = {MessageType.private: 'recipient and message',
+             MessageType.stream: 'stream, subject and message'}
+
+
 def _message_mode(window, credentials, message_function, message_type):
     window.clear()
     window.nodelay(False)
-    window.addstr(0, 0, ("Enter {} message, delimit with new lines:"
-                         " (hit Ctrl-G to send)").format(message_type))
+    message_help_text = help_text[message_type]
+    window.addstr(0, 0,
+                  "Enter {} for {} message, Ctrl-G to switch/submit".format(
+                      message_help_text, message_type.name))
+    boxes = []
+    recipient_win = curses.newwin(1, 50, 2, 1)
+    rectangle(window, 1, 0, 3, 52)
+    recipient_box = Textbox(recipient_win)
+    boxes.append(recipient_box)
 
-    editwin = curses.newwin(5, 30, 2, 1)
-    rectangle(window, 1, 0, 7, 32)
+    subject_box = None
+    if message_type == MessageType.stream:
+        subject_win = curses.newwin(1, 50, 2, 54)
+        rectangle(window, 1, 53, 3, 104)
+        subject_box = Textbox(subject_win)
+        boxes.append(subject_box)
+
+    content_win = curses.newwin(5, 103, 5, 1)
+    rectangle(window, 4, 0, 10, 104)
+    content_box = Textbox(content_win)
+    boxes.append(content_box)
     window.refresh()
 
-    box = Textbox(editwin)
-    box.edit()
-
-    # Get resulting contents
-    message = box.gather()
-    components = message.strip().split("\n")
+    recipient_box.edit()
+    if message_type == MessageType.stream:
+        subject_box.edit()
+    content_box.edit()
+    components = [box.gather() for box in boxes]
     message_function(credentials, *components)
 
     window.clear()
+    window.refresh()
     window.nodelay(True)
 
 
 def _private_message_mode(window, credentials):
-    _message_mode(window, credentials, send_private_message, "private")
+    _message_mode(window, credentials, send_private_message,
+                  MessageType.private)
 
 
 def _stream_message_mode(window, credentials):
-    _message_mode(window, credentials, send_stream_message, "stream")
+    _message_mode(window, credentials, send_stream_message, MessageType.stream)
+
+
+keybindings = {'p': _private_message_mode, 's': _stream_message_mode}
 
 
 def _main(stdscr):
@@ -108,12 +140,13 @@ def _main(stdscr):
         if message == Events.end_of_messages:
             c = stdscr.getch()
             if c >= 0:
-                if ord('q') == c:
+                key = chr(c)
+                if key == 'q':
                     break
-                elif ord('p') == c:
-                    _private_message_mode(stdscr, credentials)
-                elif ord('s') == c:
-                    _stream_message_mode(stdscr, credentials)
+                else:
+                    action = keybindings.get(key)
+                    if action is not None:
+                        action(stdscr, credentials)
             sleep(1)
         else:
             _display_message(stdscr, message, previous_message)
