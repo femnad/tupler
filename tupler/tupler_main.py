@@ -7,7 +7,7 @@ import json
 from os.path import expanduser
 from time import sleep
 
-from tupler.tupler_zulip_client import Credentials, Events, message_loop, \
+from tupler.tupler_zulip_client import Credentials, Events, get_unread_messages, message_loop, \
     send_private_message, send_stream_message
 
 
@@ -98,6 +98,10 @@ def _main(stdscr):
     curses.cbreak()
     stdscr.keypad(True)
     stdscr.nodelay(True)
+
+    unread_messages = get_unread_messages(credentials)
+    for unread_message in unread_messages:
+        _display_message(stdscr, unread_message)
 
     previous_message = None
     for message in message_loop(credentials):

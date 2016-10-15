@@ -1,12 +1,27 @@
 from collections import namedtuple
 from enum import Enum
+from html.parser import HTMLParser
 import json
+
 import requests
 from requests.auth import HTTPBasicAuth
 
 
 class Events(Enum):
     end_of_messages = 1
+
+
+class MessageContentParser(HTMLParser):
+    def __init__(self):
+        super(MessageContentParser, self).__init__()
+        self.buffer = ""
+
+    def handle_data(self, data):
+        self.buffer += data
+
+    def collect(self):
+        return self.buffer
+
 
 Message = namedtuple('Message', ['event_id', 'sender', 'recipient', 'subject',
                                  'content'])
@@ -61,7 +76,10 @@ def get_events_from_queue(credentials, queue_id, last_event_id):
 
 
 def get_message(message):
-    message_data = message['message']
+    if 'message' in message:
+        message_data = message['message']
+    else:
+        message_data = message
     sender = message_data['sender_full_name']
     recipient = message_data['display_recipient']
     subject = message_data['subject']
@@ -74,12 +92,36 @@ def get_new_messages(credentials, queue_id, last_event_id):
     return get_events_from_queue(credentials, queue_id, last_event_id)
 
 
-def get_old_messages(credentials, anchor, num_before, num_after):
+def get_old_messages(credentials, anchor=0, num_before=0, num_after=0,
+                     use_first_unread_anchor=False):
+    params = {'anchor': anchor, 'num_before': num_before,
+              'num_after': num_after}
+    if use_first_unread_anchor:
+        params['use_first_unread_anchor'] = 'true'
+        params['narrow'] = '[]'
     messages_endpoint = get_endpoint(credentials, 'messages')
     return authenticated_get(credentials, messages_endpoint,
-                             params={'anchor': anchor,
-                                     'num_before': num_before,
-                                     'num_after': num_after})
+                             params=params)
+
+
+def parse_html_content(message):
+    message_content = message['content']
+    parser = MessageContentParser()
+    parser.feed(message_content)
+    parsed = parser.collect()
+    del(parser)
+    return parsed
+
+
+def get_unread_messages(credentials, previous_messages=10):
+    unread_messages_response = get_old_messages(
+        credentials, anchor=0, num_before=previous_messages, num_after=0,
+        use_first_unread_anchor=True)
+    unread_messages_json = unread_messages_response.json()
+    unread_messages = unread_messages_json['messages']
+    for unread_message in unread_messages:
+        unread_message['content'] = parse_html_content(unread_message)
+    return [get_message(m) for m in unread_messages]
 
 
 def get_subscriptions(credentials):
