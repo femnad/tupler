@@ -95,7 +95,7 @@ def _message_mode(window, credentials, message_function, message_type):
     if message_type == MessageType.stream:
         subject_box.edit()
     content_box.edit()
-    components = [box.gather() for box in boxes]
+    components = [box.gather().strip() for box in boxes]
     message_function(credentials, *components)
 
     window.clear()
