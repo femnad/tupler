@@ -113,10 +113,11 @@ def parse_html_content(message):
     return parsed
 
 
-def get_unread_messages(credentials, previous_messages=10):
+def get_unread_messages(credentials, previous_messages=10,
+                        following_messages=10):
     unread_messages_response = get_old_messages(
-        credentials, anchor=0, num_before=previous_messages, num_after=0,
-        use_first_unread_anchor=True)
+        credentials, anchor=0, num_before=previous_messages,
+        num_after=following_messages, use_first_unread_anchor=True)
     unread_messages_json = unread_messages_response.json()
     unread_messages = unread_messages_json['messages']
     for unread_message in unread_messages:
