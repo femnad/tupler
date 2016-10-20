@@ -1,0 +1,5 @@
+{
+    "server": "<zulip-server>",
+    "email": "<users-email>",
+    "api_key": "<users-api-key>"
+}
