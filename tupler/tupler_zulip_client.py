@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum
 from html.parser import HTMLParser
+from functools import wraps
 import json
 
 import requests
@@ -23,6 +24,12 @@ class MessageContentParser(HTMLParser):
         return self.buffer
 
 
+class RequestError(Exception):
+
+    def __init__(self, message):
+        self.message = message
+
+
 Message = namedtuple('Message', ['event_id', 'sender', 'recipient', 'subject',
                                  'content'])
 
@@ -41,11 +48,23 @@ def get_endpoint(credentials, endpoint_type):
                                                endpoint=endpoint)
 
 
+@wraps
+def check_response(func):
+    def response_check(*args, **kwargs):
+        response = func(*args, **kwargs)
+        if not response.ok:
+            raise RequestError(response.text)
+        return response
+    return response_check
+
+
+@check_response
 def authenticated_get(credentials, endpoint, params=None):
     return requests.get(endpoint, auth=HTTPBasicAuth(
         credentials.email, credentials.api_key), params=params)
 
 
+@check_response
 def authenticated_post(credentials, endpoint, data):
     return requests.post(endpoint, auth=HTTPBasicAuth(
         credentials.email, credentials.api_key), data=data,
