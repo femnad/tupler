@@ -9,7 +9,7 @@ from os.path import expanduser
 from time import sleep
 
 from tupler.tupler_zulip_client import (
-    Credentials, Events, get_unread_messages, message_loop,
+    Events, get_credentials, get_unread_messages, message_loop,
     send_private_message, send_stream_message
 )
 
@@ -22,7 +22,7 @@ class MessageType(Enum):
 def _get_credentials(file_name):
     with open(expanduser(file_name)) as credentials_file:
         credentials = json.loads(credentials_file.read())
-        return Credentials(**credentials)
+        return get_credentials(**credentials)
 
 
 def _should_print_component(message, prev_message, component):

@@ -193,3 +193,8 @@ def message_loop(credentials):
             yield message_tuple
         else:
             yield Events.end_of_messages
+
+
+def get_credentials(server, email, api_key):
+    credentials = Credentials(server=server, email=email, api_key=api_key)
+    return credentials
